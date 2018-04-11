@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<title>El puerto</title>
+	
+	<! <link rel="stylesheet" type="text/css" href="css/styles.css" /> >
+	
+	<script type="text/javascript" src="js/three.min.js"></script>
+	<script type="text/javascript" src="js/stats.js"></script>
+	<script type="text/javascript" src="js/physi.js"></script>
+	<script type="text/javascript" src='js/threex.keyboardstate.js'></script>
+	<script type="text/javascript">
+	
+	//'use strict';
+	console.log('inicio');
+	
+	Physijs.scripts.worker = 'js/physijs_worker.js';
+	Physijs.scripts.ammo = 'ammo.js';
+	
+	var initScene, render, _boxes = [], spawnBox, loader,
+		renderer, render_stats, physics_stats, scene, ground_material, ground, water, light, camera, camera2, cubarquito;
+	var contnum = 0;
+	var contlocation = 0;
+	var cont1, cont2, cont3, cont4, cont5, cont6, grua_base, grua_top, grua_cadena;
+	var mesh, mesh2, joint_cadena, joint_techo, joint_base, cone_punta, iman, cameraselect = 1;
+	//grupo de la grua
+	var grua_FULL = new THREE.Group();
+	//grupo vacio
+	var iman_group = new THREE.Group();
+	//keyboard para estados
+	var keyboard	= new THREEx.KeyboardState();
+	// Loader
+	loader = new THREE.TextureLoader();
+	
+	jsonloader = new THREE.JSONLoader();
+	
+	scene = new Physijs.Scene;
+	
+	//materiales para constuir los contenedores
+	var materialcontenedor = Physijs.createMaterial(new THREE.MeshLambertMaterial({ map: loader.load( 'images/container.jpg' ) }),
+				.6, // medium friction
+				.3 // low restitution
+			);
+			
+	var materialbarco = Physijs.createMaterial(new THREE.MeshLambertMaterial({ map: loader.load( 'images/iron.jpg' ) }),
+				.9, // high friction
+				.3 // low restitution
+			);
+			
+	var materialgrua = Physijs.createMaterial(new THREE.MeshLambertMaterial({ map: loader.load( 'images/yellow.jpg' ) }),
+				.5, // medium friction
+				.0 // low restitution
+			);
+			
+	var cont_geometry = new THREE.BoxGeometry(4,4,8);
+	
+	//declarar el contenedor 1
+	cont1 = new Physijs.BoxMesh(cont_geometry,materialcontenedor);
+	cont1.castShadow = true;
+	cont1.setDamping(0,0.9);
+	cont1.name = "cont1";
+	
+	//declarar el contenedor 2
+	cont2 = new Physijs.BoxMesh(cont_geometry,materialcontenedor);
+	cont2.castShadow = true;
+	cont2.setDamping(0,0.9);
+	cont2.name = "cont2";
+	
+	//declarar el contenedor 3
+	cont3 = new Physijs.BoxMesh(cont_geometry,materialcontenedor);
+	cont3.castShadow = true;
+	cont3.setDamping(0,0.9);
+	cont3.name = "cont3";
+	
+	//declarar el contenedor 4
+	cont4 = new Physijs.BoxMesh(cont_geometry,materialcontenedor);
+	cont4.castShadow = true;
+	cont4.setDamping(0,0.9);
+	cont4.name = "cont4";
+	
+	//declarar el contenedor 5
+	cont5 = new Physijs.BoxMesh(cont_geometry,materialcontenedor);
+	cont5.castShadow = true;
+	cont5.setDamping(0,0.9);
+	cont5.name = "cont5";
+	
+	//declarar el contenedor 6
+	cont6 = new Physijs.BoxMesh(cont_geometry,materialcontenedor);
+	cont6.castShadow = true;
+	cont6.setDamping(0,0.9);
+	cont6.name = "cont6";
+	
+	//declarar parte de abajo de la grua
+	var grua_base_geometry = new THREE.BoxGeometry(1,25,1);
+	grua_base = new Physijs.BoxMesh(grua_base_geometry,materialgrua,0); //no afectado por la gravedad
+	grua_base.castShadow = true;
+	grua_base.setDamping(0,0.9);
+	grua_base.name = "grua_base";
+	
+	//declarar parte de arriba de la grua
+	var grua_arriba_geometry = new THREE.BoxGeometry(1,1,20);
+	grua_top = new Physijs.BoxMesh(grua_arriba_geometry,materialgrua,0);
+	grua_top.castShadow = true;
+	grua_top.setDamping(0,0.9);
+	grua_top.name = "grua_top";
+	
+	//declarar parte de cadena de la grua
+	var grua_cadena_geometry = new THREE.CylinderGeometry(0.3,0.3,15,20);
+	//var grua_cadena_geometry = new THREE.BoxGeometry(0.2,15,0.5);
+	grua_cadena = new Physijs.CylinderMesh(grua_cadena_geometry,materialgrua,0);
+	grua_cadena.castShadow = true;
+	grua_cadena.setDamping(0,0.9);
+	grua_cadena.name = "grua_cadena";
+	
+	//declarar el carro de la grua
+	var grua_carro_geometry = new THREE.BoxGeometry(3,2,4);
+	grua_carro = new Physijs.BoxMesh(grua_carro_geometry,materialgrua,0);
+	grua_carro.castShadow = true;
+	grua_carro.setDamping(0,0.9);
+	grua_carro.name = "grua_carro";
+	
+	
+	joint_cadena = new Physijs.SphereMesh( new THREE.SphereGeometry( 0.3 ), materialgrua, 0);
+	joint_cadena.name = "joint_cadena";
+	joint_techo = new Physijs.SphereMesh( new THREE.SphereGeometry( 0.5 ), materialgrua, 0);
+	joint_techo.name = "joint_techo";
+	joint_base = new Physijs.SphereMesh( new THREE.SphereGeometry( 0.5 ), materialgrua, 0);
+	joint_base.name = "joint_base";
+	
+	
+	//cargar un conito
+	var cone_geometry = new THREE.CylinderGeometry( 0, 2, 1.5, 32 );
+	cone_punta = new Physijs.ConeMesh(cone_geometry, materialgrua, 0);
+	cone_punta.castShadow = true;
+	cone_punta.setDamping(0,0.9);
+	cone_punta.name = "cone_punta";
+	
+	//el unico collider que funciona
+	var trans_mat = new THREE.MeshLambertMaterial({color: 0xff4444, opacity: 0.7, transparent: true });
+	var iman_geometry = new THREE.CylinderGeometry(2,2,0.01,20);
+	iman = new Physijs.CylinderMesh(iman_geometry,trans_mat);
+	iman.castShadow = true;
+	iman.setDamping(0,0.9);
+	iman.name = "iman";
+	
+	//declarar el barco
+	var barco_geometry = new THREE.BoxGeometry(16,2,8);
+	cubarquito = new Physijs.BoxMesh(barco_geometry,materialbarco, 500);
+	cubarquito.castShadow = true;
+	cubarquito.setDamping(0,0.9);
+	cubarquito.name = "cubarquito";
+	
+	
+	test = new Physijs.SphereMesh( new THREE.SphereGeometry( 1 ), materialgrua);
+	test.name = "test";
+	
+/*	
+	//Load the Crane 1
+		jsonloader.load('models/crane3.json', handle_load_bot);
+		
+	//Load the Crane 2
+		jsonloader.load('models/crane.json', handle_load_top);		
+		
+	function handle_load_bot(geometry, materials) {
+
+		//BASIC MESH
+		var material = new THREE.MultiMaterial(materials);
+		mesh = new THREE.Mesh(geometry, material);
+		scene.add(mesh);
+		mesh.scale.set( 1.5, 1.5, 1.5);
+	}
+
+	function handle_load_top(geometry, materials) {
+
+		//BASIC MESH
+		var material = new THREE.MultiMaterial(materials);
+		mesh2 = new THREE.Mesh(geometry, material);
+		scene.add(mesh2);
+		mesh2.scale.set( 1.5, 1.5, 1.5);
+		mesh2.position.y += -2;
+	}
+*/	
+	initScene = function() {
+		
+		renderer = new THREE.WebGLRenderer({ antialias: true });
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMapSoft = true;
+		document.getElementById( 'viewport' ).appendChild( renderer.domElement );
+		
+		/*
+		render_stats = new Stats();
+		render_stats.domElement.style.position = 'absolute';
+		render_stats.domElement.style.top = '0px';
+		render_stats.domElement.style.zIndex = 100;
+		document.getElementById( 'viewport' ).appendChild( render_stats.domElement );
+		
+		physics_stats = new Stats();
+		physics_stats.domElement.style.position = 'absolute';
+		physics_stats.domElement.style.top = '50px';
+		physics_stats.domElement.style.zIndex = 100;
+		document.getElementById( 'viewport' ).appendChild( physics_stats.domElement );
+		*/
+		
+		scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
+		scene.addEventListener(
+			'update',
+			function() {
+				scene.simulate( undefined, 1 );
+				//physics_stats.update();
+			}
+		);
+		
+		camera = new THREE.PerspectiveCamera(
+			35,
+			window.innerWidth / window.innerHeight,
+			1,
+			1000
+		);
+		camera.position.set( 60, 50, 60 );
+		camera.lookAt( scene.position );
+		scene.add( camera );
+		
+		camera2 = new THREE.PerspectiveCamera(
+			35,
+			window.innerWidth / window.innerHeight,
+			1,
+			1000
+		);
+		camera2.position.set( 0, 10, -80 );
+		camera2.lookAt( scene.position );
+		scene.add( camera2 );
+		
+		
+		// Light
+		light = new THREE.DirectionalLight( 0xFFFFFF );
+		light.position.set( 20, 40, -15 );
+		light.target.position.copy( scene.position );
+		light.castShadow = true;
+		light.shadowCameraLeft = -60;
+		light.shadowCameraTop = -60;
+		light.shadowCameraRight = 60;
+		light.shadowCameraBottom = 60;
+		light.shadowCameraNear = 20;
+		light.shadowCameraFar = 200;
+		light.shadowBias = -.0001
+		light.shadowMapWidth = light.shadowMapHeight = 2048;
+		light.shadowDarkness = .7;
+		scene.add( light );
+		
+		// Ground
+		ground_material = Physijs.createMaterial(
+			new THREE.MeshLambertMaterial({ map: loader.load( 'images/ground.jpg' ) }),
+			.8, // high friction
+			.3 // low restitution
+		);
+		ground_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
+		ground_material.map.repeat.set( 3, 3 );
+		/*
+		ground = new Physijs.BoxMesh(
+			new THREE.BoxGeometry(100, 1, 100),
+			ground_material,
+			0 // mass
+		);
+		*/
+		ground = new Physijs.CylinderMesh(
+			new THREE.CylinderGeometry(75, 75, 5, 5),
+			ground_material,
+			0 // mass
+		);
+		ground.receiveShadow = true;
+		ground.position.y = -7;
+		scene.add( ground );
+		
+		// water
+		water_material = Physijs.createMaterial(
+			new THREE.MeshLambertMaterial({ map: loader.load( 'images/water.jpg' ) }),
+			.1, // ultralow friccion
+			.3 // low restitution
+		);
+		water_material.map.wrapS = water_material.map.wrapT = THREE.RepeatWrapping;
+		water_material.map.repeat.set( 3, 3 );
+		
+		water = new Physijs.BoxMesh(
+			new THREE.BoxGeometry(1000, 1, 1000),
+			water_material,
+			0 // mass
+		);
+		water.receiveShadow = true;
+		water.position.y = -9;
+		scene.add( water );
+		
+		//agregar a escena el contenedor1
+			cont1.position.y = 15;
+			cont1.position.x = 0;
+			cont1.position.z = -40;
+			scene.add( cont1 );
+			// You also need to cancel the object's velocity
+			cont1.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			cont1.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			cont1.addEventListener( 'collision', onCollision);
+		
+		//agregar a escena el contenedor2
+			cont2.position.y = 15;
+			cont2.position.x = 6;
+			cont2.position.z = -40;
+			scene.add( cont2 );
+			// You also need to cancel the object's velocity
+			cont2.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			cont2.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			cont2.addEventListener( 'collision', onCollision);
+		
+		//agregar a escena el contenedor3
+			cont3.position.y = 15;
+			cont3.position.x = 12;
+			cont3.position.z = -40;
+			scene.add( cont3 );
+			// You also need to cancel the object's velocity
+			cont3.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			cont3.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			cont3.addEventListener( 'collision', onCollision);
+			
+		//agregar a escena el contenedor4
+			cont4.position.y = 20;
+			cont4.position.x = 3;
+			cont4.position.z = -40;
+			scene.add( cont4 );
+			// You also need to cancel the object's velocity
+			cont4.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			cont4.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			cont4.addEventListener( 'collision', onCollision);
+			
+		//agregar a escena el contenedor5
+			cont5.position.y = 20;
+			cont5.position.x = 9;
+			cont5.position.z = -40;
+			scene.add( cont5 );
+			// You also need to cancel the object's velocity
+			cont5.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			cont5.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			cont5.addEventListener( 'collision', onCollision);
+			
+		//agregar a escena el contenedor6
+			cont6.position.y = 25;
+			cont6.position.x = 6;
+			cont6.position.z = -40;
+			scene.add( cont6 );
+			// You also need to cancel the object's velocity
+			cont6.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			cont6.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			cont6.addEventListener( 'collision', onCollision);
+			
+			
+		//poner el la posicion neutra la grua
+			grua_FULL.position.x = 0;
+			grua_FULL.position.y = 0;
+			grua_FULL.position.z = 0;
+			
+		//agregar la grua carro
+			grua_carro.position.y = -3;
+			//scene.add(grua_carro);
+			grua_FULL.add(grua_carro);
+			
+		//agregar a escena el la base de la grupa
+			grua_base.position.y = 8;
+			grua_base.position.x = 0;
+			grua_base.position.z = 0;
+			//scene.add( grua_base );
+			// You also need to cancel the object's velocity
+			grua_base.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			grua_base.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			grua_base.addEventListener( 'collision', onCollision);
+			
+			grua_FULL.add(grua_base);
+			
+		//agregar a escena el la base de la grupa
+			//grua_top.position.y = 21;
+			//grua_top.position.x = 0;
+			//grua_top.position.z = 8;
+			//scene.add( grua_top );
+			// You also need to cancel the object's velocity
+			//grua_top.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			//grua_top.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			//grua_top.addEventListener( 'collision', onCollision);
+			
+			//grua_FULL.add(grua_top);
+			
+			joint_techo.position.y = 21-8;
+			grua_top.position.z = 8;
+			//joint_techo.position.z = 15;
+			//scene.add( joint_techo );
+			joint_techo.add(grua_top);
+			joint_techo.addEventListener( 'collision', onCollision);
+			//scene.add(joint_techo);
+			grua_FULL.add(joint_techo);
+			
+		//agregar a escena el la cadena de la grupa
+			//grua_cadena.position.y = 15;
+			//grua_cadena.position.x = 1;
+			//grua_cadena.position.z = 15;
+			//scene.add( grua_cadena );
+			// You also need to cancel the object's velocity
+			grua_cadena.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+			grua_cadena.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			grua_cadena.addEventListener( 'collision', onCollision);
+		
+			joint_cadena.position.y = 0;
+			joint_cadena.position.z = 15;
+			grua_cadena.position.y = -7;
+			//joint_cadena.position.x = 0.5;
+			//grua_cadena.position.y = -22;
+			//grua_cadena.position.z = -15;
+			cone_punta.position.y = -15;
+			joint_cadena.add(cone_punta);
+			joint_cadena.add(grua_cadena);
+			
+			joint_techo.add(joint_cadena);
+			
+			joint_base.position.y = -3;
+			//scene.add(joint_base);
+			
+			grua_base.add(joint_techo);
+			joint_base.add(grua_base);
+			
+			//scene.add (joint_cadena);
+			grua_FULL.add(joint_base);
+			
+			//grupo grua
+			iman_group.position.x = 0;
+			iman_group.position.y = 0;
+			iman_group.position.z = -5;
+			
+			scene.add(grua_FULL);
+			//grua_FULL.addEventListener( 'collision', onCollision);
+			
+			//si sale tiempo para colisiones
+			/*
+			scene.add(iman);
+			
+			test.position.y = 25;
+			scene.add(test);
+			*/
+			
+			cubarquito.position.z = -80;
+			scene.add(cubarquito);
+			
+		animar();
+	};
+	
+	function animar(){
+		
+		requestAnimationFrame(animar);
+		scene.simulate();
+		//render();
+		
+		if(cameraselect == 1){
+			renderer.render(scene, camera);
+		}
+		
+		if(cameraselect == 2){
+			renderer.render(scene, camera2);
+		}
+		
+		//renderer.render(scene, camera);
+		update();
+		
+		}
+	
+	function update(){
+			if(keyboard.pressed("J")){
+				cubarquito.position.z += 0.2;
+				cubarquito.__dirtyPosition = true;
+				cubarquito.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+				cubarquito.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			}
+			if(keyboard.pressed("L")){
+				cubarquito.position.z -= 0.2;
+				cubarquito.__dirtyPosition = true;
+				cubarquito.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+				cubarquito.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			}
+			if(keyboard.pressed("I")){
+				cubarquito.position.x -= 0.2;
+				cubarquito.__dirtyPosition = true;
+				cubarquito.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+				cubarquito.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			}
+			if(keyboard.pressed("K")){
+				cubarquito.position.x += 0.2;
+				cubarquito.__dirtyPosition = true;
+				cubarquito.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+				cubarquito.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+			}
+			
+			if(keyboard.pressed("L")){
+				console.log('x es ' + joint_base.position.x);
+				iman.position.x = iman_group.position.x;
+				iman.position.y = iman_group.position.y;
+				iman.position.z = iman_group.position.z;
+				iman.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+				iman.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+				iman.__dirtyPosition = true;
+				iman.__dirtyRotation = true;
+			}
+			
+			if(keyboard.pressed("1")){
+				cameraselect = 1;
+			}
+			if(keyboard.pressed("2")){
+				cameraselect = 2;
+			}
+		
+			if(keyboard.pressed("A")){
+			
+				grua_FULL.position.x -= 0.1;
+				grua_FULL.__dirtyPosition = true;
+				iman_group.position.x -= 0.1;
+				iman_group.__dirtyPosition = true;
+			
+				//cont1.position.x += 0.1;
+				//cont1.__dirtyPosition = true;
+			}
+			if(keyboard.pressed("D")){
+				grua_FULL.position.x += 0.1;
+				grua_FULL.__dirtyPosition = true;
+				iman_group.position.x += 0.1;
+				iman_group.__dirtyPosition = true;
+			}
+			if(keyboard.pressed("S")){
+				grua_FULL.position.z -= 0.1;
+				grua_FULL.__dirtyPosition = true;
+				iman_group.position.z -= 0.1;
+				iman_group.__dirtyPosition = true;
+			}
+			if(keyboard.pressed("W")){
+				grua_FULL.position.z += 0.1;
+				grua_FULL.__dirtyPosition = true;
+				iman_group.position.z += 0.1;
+				iman_group.__dirtyPosition = true;
+			}
+			if (keyboard.pressed("B") ){
+				grua_base.position.x += 0.1;
+				grua_base.__dirtyPosition = true;
+				iman_group.position.x += 0.1;
+				iman_group.__dirtyPosition = true;
+			}
+			if(keyboard.pressed("Q")){
+				joint_base.rotation.y += 0.1;
+				joint_base.__dirtyRotation = true;
+				iman_group.rotation.y += 0.1;
+				iman_group.__dirtyRotation = true;
+			}
+			if(keyboard.pressed("E")){
+				joint_base.rotation.y -= 0.1;
+				joint_base.__dirtyRotation = true;
+				iman_group.rotation.y -= 0.1;
+				iman_group.__dirtyRotation = true;
+			}
+			if(keyboard.pressed("Z")){
+				joint_cadena.position.y -= 0.1;
+				joint_cadena.__dirtyPosition = true;
+				iman_group.position.y -= 0.1;
+				iman_group.__dirtyPosition = true;
+			}
+			if(keyboard.pressed("X")){
+				joint_cadena.position.y += 0.1;
+				joint_cadena.__dirtyPosition = true;
+				iman_group.position.y += 0.1;
+				iman_group.__dirtyPosition = true;
+			}
+			if (keyboard.pressed("C") ){
+				joint_techo.rotation.x += 0.1;
+				joint_techo.__dirtyRotation = true;
+				joint_techo.__dirtyPosition = true;
+				iman_group.rotation.x += 0.1;
+				iman_group.__dirtyRotation = true;
+				iman_group.__dirtyPosition = true;
+			}
+			if (keyboard.pressed("F") ){
+				joint_cadena.rotation.x += 0.1;
+				joint_cadena.__dirtyRotation = true;
+				joint_cadena.__dirtyPosition = true;
+				iman_group.rotation.x += 0.1;
+				iman_group.__dirtyRotation = true;
+				iman_group.__dirtyPosition = true;
+			}
+			//camera.lookAt(mesh.position);
+		}
+	
+	function render() {
+/*
+			if (mesh) {
+				//Rotation
+				mesh.rotation.y += 0.01;
+				mesh2.rotation.y += 0.01;
+			}
+*/		
+			//renderer.render(scene, camera);
+
+			//requestAnimationFrame(render);
+		}
+		
+	function addContainerposition(contenedor, posicion){
+		scene.add( contenedor );
+		//contenedor.position.set(posicion);	
+		// You also need to cancel the object's velocity
+		contenedor.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+		contenedor.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+		contenedor.addEventListener( 'collision', onCollision);
+	}
+	
+	function onCollision(other_object, linear_velocity, angular_velocity ){
+	//aca poner un if nombre de objeto para draggearlo
+	/*
+	if(other_object.name==="cart"){
+        score++;
+        releaseBall();
+        scoreText.innerHTML=score.toString();
+    }
+	*/
+	//console.log(other_object.name	);
+	//console.log(this.name);
+	}	
+	
+	window.onload = initScene;
+	
+	</script>
+</head>
+
+<body>
+	<div id="viewport"></div>
+</body>
+
+</html>
