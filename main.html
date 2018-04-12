@@ -4,13 +4,28 @@
 
 <head>
 	<title>El puerto</title>
-	
 	<! <link rel="stylesheet" type="text/css" href="css/styles.css" /> >
 	
 	<script type="text/javascript" src="js/three.min.js"></script>
 	<script type="text/javascript" src="js/stats.js"></script>
 	<script type="text/javascript" src="js/physi.js"></script>
 	<script type="text/javascript" src='js/threex.keyboardstate.js'></script>
+	
+	<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+
+	<!-- jQuery code to display an information button and box when clicked. -->
+	<script src="js/jquery-1.9.1.js"></script>
+	<script src="js/jquery-ui.js"></script>
+	<link rel=stylesheet href="css/jquery-ui.css" />
+	<link rel=stylesheet href="css/info.css"/>
+	<script src="js/info.js"></script>
+	<div id="infoButton"></div>
+	<div id="infoBox" title="Demo Information">
+	This three.js demo is part of a collection at
+	<a href="http://stemkoski.github.io/Three.js/">http://stemkoski.github.io/Three.js/</a>
+	</div>
+	<!-- ------------------------------------------------------------ -->
+	
 	<script type="text/javascript">
 	
 	//'use strict';
@@ -20,7 +35,7 @@
 	Physijs.scripts.ammo = 'ammo.js';
 	
 	var initScene, render, _boxes = [], spawnBox, loader,
-		renderer, render_stats, physics_stats, scene, ground_material, ground, water, light, camera, camera2, cubarquito;
+		renderer, render_stats, physics_stats, scene, ground_material, ground, water, light, camera, camera2, camera3, cubarquito;
 	var contnum = 0;
 	var contlocation = 0;
 	var cont1, cont2, cont3, cont4, cont5, cont6, grua_base, grua_top, grua_cadena;
@@ -156,32 +171,35 @@
 	test = new Physijs.SphereMesh( new THREE.SphereGeometry( 1 ), materialgrua);
 	test.name = "test";
 	
-/*	
-	//Load the Crane 1
-		jsonloader.load('models/crane3.json', handle_load_bot);
+	
+	//Load the trees
+	var z = 0;
+	while (z < 15){
+	jsonloader.load('models/arbolverde.json', handle_load);	
+	z++;
+	}
 		
-	//Load the Crane 2
-		jsonloader.load('models/crane.json', handle_load_top);		
-		
-	function handle_load_bot(geometry, materials) {
+	function handle_load(geometry, materials) {
 
 		//BASIC MESH
 		var material = new THREE.MultiMaterial(materials);
 		mesh = new THREE.Mesh(geometry, material);
+		mesh.scale.set (2,2,2);
 		scene.add(mesh);
-		mesh.scale.set( 1.5, 1.5, 1.5);
-	}
-
-	function handle_load_top(geometry, materials) {
-
-		//BASIC MESH
-		var material = new THREE.MultiMaterial(materials);
-		mesh2 = new THREE.Mesh(geometry, material);
-		scene.add(mesh2);
-		mesh2.scale.set( 1.5, 1.5, 1.5);
-		mesh2.position.y += -2;
-	}
-*/	
+		posX = Math.floor(Math.random() * 35) + 5;
+		posZ = Math.floor(Math.random() * 35) + 5;
+		poscon = Math.floor(Math.random()*2)+ 1;
+		if(poscon == 2){
+			mesh.position.x = posX;
+			mesh.position.z = posZ;
+		}
+		if(poscon == 1){
+			mesh.position.x = -posX;
+			mesh.position.z = posZ;
+		}
+		mesh.position.y = -4.5;
+	}	
+	
 	initScene = function() {
 		
 		renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -229,10 +247,23 @@
 			1,
 			1000
 		);
-		camera2.position.set( 0, 10, -80 );
-		camera2.lookAt( scene.position );
-		scene.add( camera2 );
+		//camera2.lookAt( scene.position );
+		//camera2.lookAt(grua_FULL.position);
+		//scene.add( camera2 );
+		joint_techo.add(camera2);
+		camera2.position.set( 1, +4, -5 );	
 		
+		camera3 = new THREE.PerspectiveCamera(
+			35,
+			window.innerWidth / window.innerHeight,
+			1,
+			1000
+		);
+		//scene.add( camera3 );
+		//joint_techo.add(camera3);
+		//camera3.position.set( 0, 0, -80 );
+		//camera3.lookAt( new THREE.Vector3(0,0,0) );		
+		cubarquito.add(camera3);
 		
 		// Light
 		light = new THREE.DirectionalLight( 0xFFFFFF );
@@ -284,7 +315,7 @@
 		water_material.map.repeat.set( 3, 3 );
 		
 		water = new Physijs.BoxMesh(
-			new THREE.BoxGeometry(1000, 1, 1000),
+			new THREE.BoxGeometry(1000, 2, 1000),
 			water_material,
 			0 // mass
 		);
@@ -438,10 +469,10 @@
 			//si sale tiempo para colisiones
 			/*
 			scene.add(iman);
-			
-			test.position.y = 25;
-			scene.add(test);
 			*/
+			
+			//scene.add(test);
+			
 			
 			cubarquito.position.z = -80;
 			scene.add(cubarquito);
@@ -463,6 +494,9 @@
 			renderer.render(scene, camera2);
 		}
 		
+		if(cameraselect == 3){
+			renderer.render(scene, camera3);
+		}
 		//renderer.render(scene, camera);
 		update();
 		
@@ -510,6 +544,9 @@
 			}
 			if(keyboard.pressed("2")){
 				cameraselect = 2;
+			}
+			if(keyboard.pressed("3")){
+				cameraselect = 3;
 			}
 		
 			if(keyboard.pressed("A")){
@@ -587,6 +624,16 @@
 				iman_group.__dirtyPosition = true;
 			}
 			//camera.lookAt(mesh.position);
+			/*
+			if (keyboard.pressed("P")){
+				console.log(grua_FULL.lookAt);
+			}
+			*/
+			camera2.lookAt(new THREE.Vector3(0,-5,8));
+			//test.position.y = 0;
+			//test.position.z = 20;
+			//test.position.x = 0;
+			
 		}
 	
 	function render() {
