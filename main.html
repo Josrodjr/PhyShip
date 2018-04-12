@@ -12,24 +12,32 @@
 	<script type="text/javascript" src='js/threex.keyboardstate.js'></script>
 	
 	<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
-
-	<!-- jQuery code to display an information button and box when clicked. -->
 	<script src="js/jquery-1.9.1.js"></script>
 	<script src="js/jquery-ui.js"></script>
 	<link rel=stylesheet href="css/jquery-ui.css" />
 	<link rel=stylesheet href="css/info.css"/>
 	<script src="js/info.js"></script>
 	<div id="infoButton"></div>
-	<div id="infoBox" title="Demo Information">
-	This three.js demo is part of a collection at
-	<a href="http://stemkoski.github.io/Three.js/">http://stemkoski.github.io/Three.js/</a>
-	</div>
-	<!-- ------------------------------------------------------------ -->
-	
+	<div id="infoBox" title="Ayuda">
+	<h3> Movimientos de la grua </h3>
+		<li>Rotacion de la cabeza horizontalmente
+			<dd>Q|E</dd>
+		<li>Movimiento hacia adelante/atras
+			<dd>W|S</dd>
+		<li>Movimiento hacia la derecha/izquierda
+			<dd>A|D</dd>
+		<li>Subir/Bajar la cadena
+			<dd>Z|X</dd>
+		<li>Rotar Cabeza verticalmente
+			<dd>C|F</dd>
+	<h3> Movimientos de el barco </h3>
+		<li>Movimiento hacia adelante/atras
+				<dd>J|L</dd>
+		<li>Movimiento hacia la derecha/izquierda
+				<dd>I|K</dd>
+		</div>
+		</div>
 	<script type="text/javascript">
-	
-	//'use strict';
-	console.log('inicio');
 	
 	Physijs.scripts.worker = 'js/physijs_worker.js';
 	Physijs.scripts.ammo = 'ammo.js';
@@ -262,7 +270,8 @@
 		//scene.add( camera3 );
 		//joint_techo.add(camera3);
 		//camera3.position.set( 0, 0, -80 );
-		//camera3.lookAt( new THREE.Vector3(0,0,0) );		
+		camera3.position.set( 0, +2, -8 );
+		camera3.lookAt( new THREE.Vector3(360,-90,660) );		
 		cubarquito.add(camera3);
 		
 		// Light
@@ -577,12 +586,6 @@
 				iman_group.position.z += 0.1;
 				iman_group.__dirtyPosition = true;
 			}
-			if (keyboard.pressed("B") ){
-				grua_base.position.x += 0.1;
-				grua_base.__dirtyPosition = true;
-				iman_group.position.x += 0.1;
-				iman_group.__dirtyPosition = true;
-			}
 			if(keyboard.pressed("Q")){
 				joint_base.rotation.y += 0.1;
 				joint_base.__dirtyRotation = true;
@@ -622,6 +625,18 @@
 				iman_group.rotation.x += 0.1;
 				iman_group.__dirtyRotation = true;
 				iman_group.__dirtyPosition = true;
+			}
+			if(keyboard.pressed("R")){
+				joint_techo.rotation.y += 0.1;
+				joint_techo.__dirtyRotation = true;
+				iman_group.rotation.y += 0.1;
+				iman_group.__dirtyRotation = true;
+			}
+			if(keyboard.pressed("T")){
+				joint_techo.rotation.y -= 0.1;
+				joint_techo.__dirtyRotation = true;
+				iman_group.rotation.y -= 0.1;
+				iman_group.__dirtyRotation = true;
 			}
 			//camera.lookAt(mesh.position);
 			/*
